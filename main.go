@@ -18,9 +18,9 @@ import "github.com/gin-gonic/gin"
 import "github.com/timmyArch/muh-api/v1"
 
 func main() {
-		r := gin.Default()
-    v1.Routes(r)
-    r.Run()
+  r := gin.Default()
+  v1.Routes(r)
+  r.Run()
 }
 
 
