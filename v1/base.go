@@ -22,11 +22,11 @@ import (
 
 func Routes(api *gin.Engine) {
   r := redis.NewClient(&redis.Options{
-    Addr: "localhost:6379",
+    Addr: "/tmp/redis.sock",
     Password: "",
     DB: 0,
+    Network: "unix",
   })
-
   version := api.Group("/v1")
   version.GET("/ping", Ping)
 
