@@ -32,19 +32,22 @@ type UserResource struct {
 func (u UserResource) Routes() {
   u.Engine.GET("/users/:uuid", u.Get)
   u.Engine.POST("/users", u.Create)
+  u.Engine.POST("/users/:uuid/uuid", u.ResetUuid)
 }
 
 func (u UserResource) Get(c *gin.Context) {
-  val, err := u.Redis.Get("user::id::"+c.Param("uuid")).Result()
-  if err == redis.Nil {
+  user := User{
+    UserResource: &u,
+    Uuid: c.Param("uuid"),
+  }
+  if user.GetUsername() == "" {
     NotFound("User", c)
-  } else if err != nil {
-    log.Error(err)
-    InternalError(c)
   } else {
     c.JSON(200, gin.H{
-      "message": "User fetched.",
-      "value": val,
+      "user": map[string]string{
+        "uuid": user.GetUuid(),
+        "username": user.GetUsername(),
+      },
     })
   }
 }
@@ -60,13 +63,33 @@ func (u UserResource) Create(c *gin.Context) {
     new_user := NewUser(c.PostForm("username"),c.PostForm("password"), &u)
     if new_user.Save() {
       c.JSON(201, gin.H{
-        "user": new_user.Uuid,
+        "user":  map[string]string{
+          "uuid": new_user.Uuid,
+          "username": new_user.Username,
+        },
       })
     } else { 
       c.JSON(422, gin.H{
         "message": "Createing new user failed.",
       })
     }
+  }
+}
+
+func (u UserResource) ResetUuid(c *gin.Context) {
+  user := User{
+    UserResource: &u,
+    Uuid: c.Param("uuid"),
+  }
+  if user.GetUsername() == "" {
+    NotFound("User", c)
+  } else {
+    c.JSON(200, gin.H{
+      "user": map[string]string{
+        "uuid": user.ResetUuid(),
+        "username": user.GetUsername(),
+      },
+    })
   }
 }
 
@@ -91,22 +114,18 @@ func NewUser(username string, password string, ur *UserResource) User {
 }
 
 func (u *User) Save() bool {
-  err := u.UserResource.Redis.Set("user::id::"+u.GetUuid(), u.EncodedUsername(), 0).Err()
+  pipe := u.UserResource.Redis.Pipeline()
+  defer pipe.Close()
+  pipe.Set("user::id::"+u.GetUuid(), u.EncodedUsername(), 0)
+  pipe.Set("user::name::"+u.EncodedUsername(), u.GetUuid(), 0)
+  pipe.Set("user::pass::"+u.EncodedUsername(), u.GetPasswordDigest(), 0)
+  _, err := pipe.Exec()
   if err != nil {
-    log.Error(err, "Error on saving uuid <> username mapping")
+    log.Error(err, "Error during User.Save().")
     return false
+  } else {
+    return true
   }
-  err = u.UserResource.Redis.Set("user::name::"+u.EncodedUsername(), u.GetUuid(), 0).Err()
-  if err != nil {
-    log.Error(err, "Error on saving username <> uuid mapping")
-    return false
-  }
-  err = u.UserResource.Redis.Set("user::pass::"+u.EncodedUsername(), u.GetPasswordDigest(), 0).Err()
-  if err != nil {
-    log.Error(err, "Error on saving username <> password_digest")
-    return false
-  }
-  return true
 }
 
 func (u *User) EncodedUsername() string {
@@ -127,17 +146,14 @@ func (u *User) GetUuid() string {
 
 func (u *User) ResetUuid() string {
   id := uuid.NewV4().String()
-  err := u.UserResource.Redis.Set("user::id::"+id, u.EncodedUsername(), 0).Err()
+  pipe := u.UserResource.Redis.Pipeline()
+  defer pipe.Close()
+  pipe.Set("user::id::"+id, u.EncodedUsername(), 0)
+  pipe.Set("user::name::"+u.EncodedUsername(), id, 0)
+  pipe.Del("user::id::"+u.GetUuid())
+  _, err := pipe.Exec()
   if err != nil {
-    log.Error(err, "Error on setting new id.")
-  }
-  err = u.UserResource.Redis.Set("user::name::"+u.EncodedUsername(), id, 0).Err()
-  if err != nil {
-    log.Error(err, "Error on setting id to username.")
-  }
-  err = u.UserResource.Redis.Del("user::id::"+u.GetUuid()).Err()
-  if err != nil {
-    log.Error(err, "Error on deleting old id.")
+    log.Error(err, "Error on resetting Uuid.")
   } else {
     u.Uuid = id
   }
