@@ -1,0 +1,86 @@
+// Copyright 2016 Tim Foerster <github@mailserver.1n3t.de>
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package resources
+
+import (
+  "github.com/gin-gonic/gin"
+  "gopkg.in/redis.v3"
+
+  log "github.com/Sirupsen/logrus"
+)
+
+type GistResource struct {
+  Redis *redis.Client
+  Engine *gin.RouterGroup
+}
+
+func (g GistResource) Routes() {
+  g.Engine.GET("/gists/:uuid", g.Get)
+}
+
+func (g GistResource) Get(c *gin.Context) {
+  gist := Gist{
+    GistResource: &g,
+    Uuid: c.Param("uuid"),
+  }
+  if gist.Exists() == false {
+    NotFound("Gist", c)
+  } else {
+    c.JSON(200, gin.H{
+      "gist": map[string]string{
+        "uuid": gist.Uuid,
+      },
+      "snippets": gist.GetSnippets(),
+    })
+  }
+}
+
+type Gist struct {
+  GistResource *GistResource
+  Uuid string
+}
+
+func (g *Gist) Exists() bool {
+  val, err := g.GistResource.Redis.Exists("gists::"+g.Uuid).Result()
+  if err != nil {
+    return false
+  } else {
+    return val
+  }
+}
+
+func (g *Gist) GetSnippets() map[string]string {
+  snippets, err := g.GistResource.Redis.SMembers("gists::"+g.Uuid).Result()
+  snippets_pre_collection := map[string]*redis.StringCmd{}
+  snippets_collection := map[string]string{}
+  if err != nil {
+    log.Error(err)
+  } else {
+    pipe := g.GistResource.Redis.Pipeline()
+    defer pipe.Close()
+    for _, snipp := range snippets {
+      snippets_pre_collection[snipp] = pipe.Get("snippets::"+snipp)
+    }
+    _, err := pipe.Exec()
+    if err != nil {
+      log.Error(err)
+    } else {
+      for k, v := range snippets_pre_collection {
+        snippets_collection[k] = v.Val()
+      }
+    }
+  }
+  return snippets_collection
+}

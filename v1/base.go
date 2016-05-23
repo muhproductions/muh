@@ -35,10 +35,15 @@ func Routes(api *gin.Engine) {
     Engine: version,
   }.Routes()
 
+  resources.GistResource{
+    Redis: r,
+    Engine: version,
+  }.Routes()
+
 }
 
 func Ping(c *gin.Context) {
-  c.JSON(200, gin.H{
+  c.JSON(418, gin.H{
     "message": "pong",
   })
 }

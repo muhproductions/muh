@@ -20,7 +20,7 @@ import (
 
 func NotFound(resource string, c *gin.Context) {
   c.JSON(404, gin.H{
-    "message": "User not found",
+    "message": resource+" not found",
   })
 }
 
