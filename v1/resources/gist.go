@@ -69,8 +69,10 @@ func (g GistResource) CreateSnippets(c *gin.Context) {
     })
   }
   gist.AddSnippets(snippets)
-  c.JSON(200, gin.H{
-    "message": gist.Uuid,
+  c.JSON(201, gin.H{
+    "gist": map[string]string{
+      "uuid": gist.Uuid,
+    },
   })
 }
 
@@ -91,12 +93,14 @@ func (g *Gist) Exists() bool {
 func (g *Gist) AddSnippets(snippets []map[string]string) bool {
   pipe := g.GistResource.Redis.Pipeline()
   defer pipe.Close()
-  g.Uuid = uuid.NewV4().String()
+  if g.Uuid == "" {
+    g.Uuid = uuid.NewV4().String()
+  }
   for _, v := range snippets {
     temp_uuid := uuid.NewV4().String()
     pipe.SAdd("gists::"+g.Uuid, temp_uuid)
     json, _ := json.Marshal(v)
-    pipe.Set("snipptes::"+temp_uuid, string(json), 10000)
+    pipe.Set("snippets::"+temp_uuid, string(json), 0)
   }
   _, err := pipe.Exec()
   if err != nil {
@@ -107,24 +111,25 @@ func (g *Gist) AddSnippets(snippets []map[string]string) bool {
   }
 }
 
-func (g *Gist) GetSnippets() map[string]string {
+func (g *Gist) GetSnippets() map[string]map[string]string {
   snippets, err := g.GistResource.Redis.SMembers("gists::"+g.Uuid).Result()
   snippets_pre_collection := map[string]*redis.StringCmd{}
-  snippets_collection := map[string]string{}
+  snippets_collection := map[string]map[string]string{}
   if err != nil {
-    log.Error(err)
+    log.Error(err, "Gist not found")
   } else {
     pipe := g.GistResource.Redis.Pipeline()
     defer pipe.Close()
     for _, snipp := range snippets {
       snippets_pre_collection[snipp] = pipe.Get("snippets::"+snipp)
     }
-    _, err := pipe.Exec()
-    if err != nil {
-      log.Error(err)
-    } else {
-      for k, v := range snippets_pre_collection {
-        snippets_collection[k] = v.Val()
+    pipe.Exec()
+    for k, v := range snippets_pre_collection {
+      var dat map[string]string
+      if err := json.Unmarshal([]byte(v.Val()), &dat); err != nil {
+        log.Error(err, "Snippet loading failed - "+k)
+      } else {
+        snippets_collection[k] = dat
       }
     }
   }
