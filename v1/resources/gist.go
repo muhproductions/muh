@@ -17,6 +17,9 @@ package resources
 import (
   "github.com/gin-gonic/gin"
   "gopkg.in/redis.v3"
+  "github.com/satori/go.uuid"
+  "encoding/json"
+  "strconv"
 
   log "github.com/Sirupsen/logrus"
 )
@@ -28,6 +31,8 @@ type GistResource struct {
 
 func (g GistResource) Routes() {
   g.Engine.GET("/gists/:uuid", g.Get)
+  g.Engine.POST("/gists/:uuid", g.CreateSnippets)
+  g.Engine.POST("/gists", g.CreateSnippets)
 }
 
 func (g GistResource) Get(c *gin.Context) {
@@ -47,6 +52,28 @@ func (g GistResource) Get(c *gin.Context) {
   }
 }
 
+func (g GistResource) CreateSnippets(c *gin.Context) {
+  gist := Gist{
+    GistResource: &g,
+  }
+  if c.Param("uuid") != "" {
+    gist.Uuid = c.Param("uuid")
+  } 
+  snippets := []map[string]string{}
+  c.Request.ParseForm()
+  for i := 0; i < len(c.Request.Form)/2; i++ {
+    si := strconv.Itoa(i)
+    snippets = append(snippets, map[string]string{
+      "paste": string(c.Request.PostFormValue("snippet["+si+"]paste")),
+      "lang": string(c.Request.PostFormValue("snippet["+si+"]lang")),
+    })
+  }
+  gist.AddSnippets(snippets)
+  c.JSON(200, gin.H{
+    "message": gist.Uuid,
+  })
+}
+
 type Gist struct {
   GistResource *GistResource
   Uuid string
@@ -58,6 +85,25 @@ func (g *Gist) Exists() bool {
     return false
   } else {
     return val
+  }
+}
+
+func (g *Gist) AddSnippets(snippets []map[string]string) bool {
+  pipe := g.GistResource.Redis.Pipeline()
+  defer pipe.Close()
+  g.Uuid = uuid.NewV4().String()
+  for _, v := range snippets {
+    temp_uuid := uuid.NewV4().String()
+    pipe.SAdd("gists::"+g.Uuid, temp_uuid)
+    json, _ := json.Marshal(v)
+    pipe.Set("snipptes::"+temp_uuid, string(json), 10000)
+  }
+  _, err := pipe.Exec()
+  if err != nil {
+    log.Error(err, "Error on setting snippets")
+    return false
+  } else {
+    return true
   }
 }
 
