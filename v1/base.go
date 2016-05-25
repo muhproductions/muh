@@ -18,14 +18,15 @@ import (
   "github.com/gin-gonic/gin"
   "gopkg.in/redis.v3"
   "github.com/timmyArch/muh-api/v1/resources"
+  "os"
 )
 
 func Routes(api *gin.Engine) {
   r := redis.NewClient(&redis.Options{
-    Addr: "/tmp/redis.sock",
+    Addr: os.Getenv("REDIS_ADDR"),
     Password: "",
     DB: 0,
-    Network: "unix",
+    Network: os.Getenv("REDIS_NETWORK"),
   })
   version := api.Group("/v1")
   version.GET("/ping", Ping)
