@@ -1,0 +1,16 @@
+language: go
+services:
+  - redis-server
+sudo: false
+go:
+  - 1.4
+  - 1.5
+  - 1.6
+  - tip
+
+script:
+  - go get github.com/mattn/goveralls
+  - go test -v -covermode=count -coverprofile=coverage.out
+
+after_success:
+  - goveralls -coverprofile=coverage.out -service=travis-ci -repotoken SgLUIDDWEKa6waokvKrjuFpMiF1QB4dya

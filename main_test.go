@@ -14,17 +14,19 @@
 
 package main
 
-import "github.com/gin-gonic/gin"
-import "github.com/timmyArch/muh-api/v1"
+import (
+  "testing"
+  "github.com/stretchr/testify/assert"
+  "github.com/appleboy/gofight"
+  "github.com/gin-gonic/gin"
+)
 
-func GetEngine() *gin.Engine {
-  r := gin.Default()
-  v1.Routes(r)
-  return r
+func Test404(t *testing.T) {
+  gin.SetMode(gin.TestMode)
+  r := gofight.New()
+  r.GET("/").
+  SetDebug(true).
+  Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
+    assert.Equal(t, 404, r.Code, "ResponseCode should be 404")
+  })
 }
-
-func main() {
-  GetEngine().Run()
-}
-
-
