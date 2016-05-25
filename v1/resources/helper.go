@@ -12,39 +12,44 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
 package resources
 
 import (
-  "runtime"
   "bytes"
-//  gzip "github.com/klauspost/pgzip"
   "compress/gzip"
+  "github.com/golang/snappy"
+  "os"
   "io/ioutil"
 )
 
-func setCpu() {
-  runtime.GOMAXPROCS(runtime.NumCPU())
-}
-
 func Zip(str string) string {
-  var b bytes.Buffer
-  w := gzip.NewWriter(&b)
-
-  //w.SetConcurrency(100000, 10) 
-  w.Write([]byte(str))
-  w.Close()
-  
-  return b.String()
+  if os.Getenv("COMPRESSION") == "snappy" {
+    encoded := snappy.Encode(nil, []byte(str))
+    return string(encoded)
+  } else if os.Getenv("COMPRESSION") == "gzip" {
+    var b bytes.Buffer
+    w := gzip.NewWriter(&b)
+    w.Write([]byte(str))
+    w.Close()
+    return b.String()
+  }
+  return str
 }
 
 func Unzip(str string) string {
-  read_buf := new(bytes.Buffer)
-  read_buf.WriteString(str)
+  if os.Getenv("COMPRESSION") == "snappy" {
+    decoded, _ := snappy.Decode(nil, []byte(str))
+    return string(decoded)
+  } else if os.Getenv("COMPRESSION") == "gzip" {
+    read_buf := new(bytes.Buffer)
+    read_buf.WriteString(str)
 
-  r, _ := gzip.NewReader(read_buf)
-  defer r.Close()
+    r, _ := gzip.NewReader(read_buf)
+    defer r.Close()
+    unzip, _ := ioutil.ReadAll(r)
 
-  unzip, _ := ioutil.ReadAll(r)
-
-  return string(unzip)
+    return string(unzip)
+  }
+  return str
 }
