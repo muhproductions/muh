@@ -7,6 +7,9 @@ go:
   - 1.6
   - tip
 
+env:
+  - REDIS_ADDR=localhost:6379 REDIS_NETWORK=tcp COMPRESSION=snappy
+
 script:
   - go get github.com/mattn/goveralls
   - go test -v -covermode=count -coverprofile=coverage.out
