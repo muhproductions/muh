@@ -9,6 +9,8 @@ go:
 
 env:
   - REDIS_ADDR=localhost:6379 REDIS_NETWORK=tcp COMPRESSION=snappy
+  - REDIS_ADDR=localhost:6379 REDIS_NETWORK=tcp COMPRESSION=gzip
+  - REDIS_ADDR=localhost:6379 REDIS_NETWORK=tcp COMPRESSION=
 
 script:
   - go get github.com/mattn/goveralls
