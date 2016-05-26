@@ -21,13 +21,18 @@ import (
   "os"
 )
 
-func Routes(api *gin.Engine) {
-  r := redis.NewClient(&redis.Options{
+
+func RedisClient() *redis.Client{
+  return redis.NewClient(&redis.Options{
     Addr: os.Getenv("REDIS_ADDR"),
     Password: "",
     DB: 0,
     Network: os.Getenv("REDIS_NETWORK"),
   })
+}
+
+func Routes(api *gin.Engine) {
+  r := RedisClient()
   version := api.Group("/v1")
   version.GET("/ping", Ping)
 
