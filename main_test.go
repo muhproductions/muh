@@ -50,8 +50,8 @@ func TestGistCreateReturns201(t *testing.T) {
 
 func TestGistCreateAndFindGist(t *testing.T) {
   conf := conf(t)
-  var first_call map[string]interface{}
-  var second_call map[string]interface{}
+  var firstcall map[string]interface{}
+  var secondcall map[string]interface{}
 
   conf.POST("/v1/gists").
     SetFORM(gofight.H{
@@ -62,29 +62,29 @@ func TestGistCreateAndFindGist(t *testing.T) {
     }).
     Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
       assert.Equal(t, 201, r.Code, "ResponseCode should be 201")
-      json_error := json.Unmarshal(r.Body.Bytes(), &first_call)
-      assert.Equal(t, nil, json_error, "ReponseBody could be parsed.")
+      jsonerror := json.Unmarshal(r.Body.Bytes(), &firstcall)
+      assert.Equal(t, nil, jsonerror, "ReponseBody could be parsed.")
     })
-    gist := first_call["gist"].(map[string]interface{})
+    gist := firstcall["gist"].(map[string]interface{})
     assert.NotEmpty(t, gist["uuid"], "Gist id should not be empty")
 
   conf.GET("/v1/gists/"+gist["uuid"].(string)).
     Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
       assert.Equal(t, 200, r.Code, "ResponseCode should be 200")
-      json_error := json.Unmarshal(r.Body.Bytes(), &second_call)
-      assert.Equal(t, nil, json_error, "ReponseBody could be parsed.")
+      jsonerror := json.Unmarshal(r.Body.Bytes(), &secondcall)
+      assert.Equal(t, nil, jsonerror, "ReponseBody could be parsed.")
     })
 
-    new_gist := second_call["gist"].(map[string]interface{})
-    snippets := second_call["snippets"].(map[string]interface{})
-    assert.Equal(t, new_gist["uuid"], gist["uuid"], "Returned uuid is same as fetched.")
+    newgist := secondcall["gist"].(map[string]interface{})
+    snippets := secondcall["snippets"].(map[string]interface{})
+    assert.Equal(t, newgist["uuid"], gist["uuid"], "Returned uuid is same as fetched.")
     assert.Equal(t, len(snippets), 2, "2 snippets returned")
     for _, snip := range snippets {
-      parsed_snippet :=  snip.(map[string]interface{})
-      if parsed_snippet["lang"].(string) == "ruby" {
-        assert.Contains(t, parsed_snippet["paste"], "ruby")
-      } else if parsed_snippet["lang"].(string) == "go" {
-        assert.Contains(t, parsed_snippet["paste"], "go")
+      parsedsnippet :=  snip.(map[string]interface{})
+      if parsedsnippet["lang"].(string) == "ruby" {
+        assert.Contains(t, parsedsnippet["paste"], "ruby")
+      } else if parsedsnippet["lang"].(string) == "go" {
+        assert.Contains(t, parsedsnippet["paste"], "go")
       } else {
         assert.FailNow(t, "No snippet matched")
       }
