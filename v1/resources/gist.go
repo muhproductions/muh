@@ -15,123 +15,153 @@
 package resources
 
 import (
-  "github.com/gin-gonic/gin"
-  "gopkg.in/redis.v3"
-  "github.com/satori/go.uuid"
-  "encoding/json"
-  "strconv"
+	"encoding/json"
+	"github.com/gin-gonic/gin"
+	"github.com/satori/go.uuid"
+	"gopkg.in/redis.v3"
+	"strconv"
 
-  log "github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 )
 
+// GistResource - Gists API Endpoint
 type GistResource struct {
-  Redis *redis.Client
-  Engine *gin.RouterGroup
+	Redis  *redis.Client
+	Engine *gin.RouterGroup
 }
 
+// Routes - Setup gists resource routes
 func (g GistResource) Routes() {
-  g.Engine.GET("/gists/:uuid", g.Get)
-  g.Engine.POST("/gists/:uuid", g.CreateSnippets)
-  g.Engine.POST("/gists", g.CreateSnippets)
+	g.Engine.GET("/gists/:uuid", g.Get)
+	g.Engine.POST("/gists/:uuid", g.CreateSnippets)
+	g.Engine.POST("/gists", g.CreateSnippets)
 }
 
+/*
+Get - gist by id
+
+{
+	"gist": {
+		"uuid": <UUID>
+	},
+	"snippets": [
+		{
+			"paste": "moo",
+			"lang": "ruby"
+		}
+	]
+}
+*/
 func (g GistResource) Get(c *gin.Context) {
-  gist := Gist{
-    GistResource: &g,
-    Uuid: c.Param("uuid"),
-  }
-  if gist.Exists() == false {
-    NotFound("Gist", c)
-  } else {
-    c.JSON(200, gin.H{
-      "gist": map[string]string{
-        "uuid": gist.Uuid,
-      },
-      "snippets": gist.GetSnippets(),
-    })
-  }
+	gist := Gist{
+		GistResource: &g,
+		UUID:         c.Param("uuid"),
+	}
+	if gist.Exists() == false {
+		NotFound("Gist", c)
+	} else {
+		c.JSON(200, gin.H{
+			"gist": map[string]string{
+				"uuid": gist.UUID,
+			},
+			"snippets": gist.GetSnippets(),
+		})
+	}
 }
 
+/*
+CreateSnippets - Create or add new Snippets
+
+POST /gists - Create new gist with (n) new snippets.
+POST /gists/<UUID> - Create or update gist with (n) new snippets.
+{
+	"gist": {
+		"uuid": <UUID>
+	}
+}
+*/
 func (g GistResource) CreateSnippets(c *gin.Context) {
-  gist := Gist{
-    GistResource: &g,
-  }
-  if c.Param("uuid") != "" {
-    gist.Uuid = c.Param("uuid")
-  } 
-  snippets := []map[string]string{}
-  c.Request.ParseForm()
-  for i := 0; i < len(c.Request.Form)/2; i++ {
-    si := strconv.Itoa(i)
-    snippets = append(snippets, map[string]string{
-      "paste": string(c.Request.PostFormValue("snippet["+si+"]paste")),
-      "lang": string(c.Request.PostFormValue("snippet["+si+"]lang")),
-    })
-  }
-  gist.AddSnippets(snippets)
-  c.JSON(201, gin.H{
-    "gist": map[string]string{
-      "uuid": gist.Uuid,
-    },
-  })
+	gist := Gist{
+		GistResource: &g,
+	}
+	if c.Param("uuid") != "" {
+		gist.UUID = c.Param("uuid")
+	}
+	snippets := []map[string]string{}
+	c.Request.ParseForm()
+	for i := 0; i < len(c.Request.Form)/2; i++ {
+		si := strconv.Itoa(i)
+		snippets = append(snippets, map[string]string{
+			"paste": string(c.Request.PostFormValue("snippet[" + si + "]paste")),
+			"lang":  string(c.Request.PostFormValue("snippet[" + si + "]lang")),
+		})
+	}
+	gist.AddSnippets(snippets)
+	c.JSON(201, gin.H{
+		"gist": map[string]string{
+			"uuid": gist.UUID,
+		},
+	})
 }
 
+//Gist model
 type Gist struct {
-  GistResource *GistResource
-  Uuid string
+	GistResource *GistResource
+	UUID         string
 }
 
+//Exists verifies the persistence level.
 func (g *Gist) Exists() bool {
-  val, err := g.GistResource.Redis.Exists("gists::"+g.Uuid).Result()
-  if err != nil {
-    return false
-  } else {
-    return val
-  }
+	val, err := g.GistResource.Redis.Exists("gists::" + g.UUID).Result()
+	if err != nil {
+		return false
+	}
+	return val
 }
 
+//AddSnippets appends new compressed snippets.
 func (g *Gist) AddSnippets(snippets []map[string]string) bool {
-  pipe := g.GistResource.Redis.Pipeline()
-  defer pipe.Close()
-  if g.Uuid == "" {
-    g.Uuid = uuid.NewV4().String()
-  }
-  for _, v := range snippets {
-    temp_uuid := uuid.NewV4().String()
-    pipe.SAdd("gists::"+g.Uuid, temp_uuid)
-    json, _ := json.Marshal(v)
-    pipe.Set("snippets::"+temp_uuid, Zip(string(json)), 0)
-  }
-  _, err := pipe.Exec()
-  if err != nil {
-    log.Error(err, "Error on setting snippets")
-    return false
-  } else {
-    return true
-  }
+	pipe := g.GistResource.Redis.Pipeline()
+	defer pipe.Close()
+	if g.UUID == "" {
+		g.UUID = uuid.NewV4().String()
+	}
+	for _, v := range snippets {
+		tempuuid := uuid.NewV4().String()
+		pipe.SAdd("gists::"+g.UUID, tempuuid)
+		json, _ := json.Marshal(v)
+		pipe.Set("snippets::"+tempuuid, Zip(string(json)), 0)
+	}
+	_, err := pipe.Exec()
+	if err != nil {
+		log.Error(err, "Error on setting snippets")
+		return false
+	}
+	return true
 }
 
+//GetSnippets returns all uncompressed snippets which are associated to self.
 func (g *Gist) GetSnippets() map[string]map[string]string {
-  snippets, err := g.GistResource.Redis.SMembers("gists::"+g.Uuid).Result()
-  snippets_pre_collection := map[string]*redis.StringCmd{}
-  snippets_collection := map[string]map[string]string{}
-  if err != nil {
-    log.Error(err, "Gist not found")
-  } else {
-    pipe := g.GistResource.Redis.Pipeline()
-    defer pipe.Close()
-    for _, snipp := range snippets {
-      snippets_pre_collection[snipp] = pipe.Get("snippets::"+snipp)
-    }
-    pipe.Exec()
-    for k, v := range snippets_pre_collection {
-      var dat map[string]string
-      if err := json.Unmarshal([]byte(Unzip(v.Val())), &dat); err != nil {
-        log.Error(err, "Snippet loading failed - "+k)
-      } else {
-        snippets_collection[k] = dat
-      }
-    }
-  }
-  return snippets_collection
+	snippets, err := g.GistResource.Redis.SMembers("gists::" + g.UUID).Result()
+	snippetsprecollection := map[string]*redis.StringCmd{}
+	snippetscollection := map[string]map[string]string{}
+	if err != nil {
+		log.Error(err, "Gist not found")
+	} else {
+		pipe := g.GistResource.Redis.Pipeline()
+		defer pipe.Close()
+		for _, snipp := range snippets {
+			snippetsprecollection[snipp] = pipe.Get("snippets::" + snipp)
+		}
+		pipe.Exec()
+		for k, v := range snippetsprecollection {
+			var dat map[string]string
+			if err := json.Unmarshal([]byte(Unzip(v.Val())), &dat); err != nil {
+				log.Error(err, "Snippet loading failed - "+k)
+			} else {
+				snippetscollection[k] = dat
+			}
+		}
+	}
+	return snippetscollection
 }

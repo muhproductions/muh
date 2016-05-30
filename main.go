@@ -19,13 +19,11 @@ import "github.com/timmyArch/muh-api/v1"
 
 // GetEngine returns the GinEngine, which got all routes.
 func GetEngine() *gin.Engine {
-  r := gin.Default()
-  v1.Routes(r)
-  return r
+	r := gin.Default()
+	v1.Routes(r)
+	return r
 }
 
 func main() {
-  GetEngine().Run()
+	GetEngine().Run()
 }
-
-

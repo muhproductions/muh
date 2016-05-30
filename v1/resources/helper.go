@@ -12,44 +12,52 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 package resources
 
 import (
-  "bytes"
-  "compress/gzip"
-  "github.com/golang/snappy"
-  "os"
-  "io/ioutil"
+	"bytes"
+	"compress/gzip"
+	"github.com/golang/snappy"
+	"io/ioutil"
+	"os"
 )
 
+/*
+Zip - Generic compression layer.
+It provides supports multiple compression layers
+ * gzip
+ * snappy
+ * uncompress (empty - default)
+This option should be set by system environment var "COMPRESSION"
+*/
 func Zip(str string) string {
-  if os.Getenv("COMPRESSION") == "snappy" {
-    encoded := snappy.Encode(nil, []byte(str))
-    return string(encoded)
-  } else if os.Getenv("COMPRESSION") == "gzip" {
-    var b bytes.Buffer
-    w := gzip.NewWriter(&b)
-    w.Write([]byte(str))
-    w.Close()
-    return b.String()
-  }
-  return str
+	if os.Getenv("COMPRESSION") == "snappy" {
+		encoded := snappy.Encode(nil, []byte(str))
+		return string(encoded)
+	} else if os.Getenv("COMPRESSION") == "gzip" {
+		var b bytes.Buffer
+		w := gzip.NewWriter(&b)
+		w.Write([]byte(str))
+		w.Close()
+		return b.String()
+	}
+	return str
 }
 
+// Unzip - reverse method to Zip()
 func Unzip(str string) string {
-  if os.Getenv("COMPRESSION") == "snappy" {
-    decoded, _ := snappy.Decode(nil, []byte(str))
-    return string(decoded)
-  } else if os.Getenv("COMPRESSION") == "gzip" {
-    read_buf := new(bytes.Buffer)
-    read_buf.WriteString(str)
+	if os.Getenv("COMPRESSION") == "snappy" {
+		decoded, _ := snappy.Decode(nil, []byte(str))
+		return string(decoded)
+	} else if os.Getenv("COMPRESSION") == "gzip" {
+		readbuf := new(bytes.Buffer)
+		readbuf.WriteString(str)
 
-    r, _ := gzip.NewReader(read_buf)
-    defer r.Close()
-    unzip, _ := ioutil.ReadAll(r)
+		r, _ := gzip.NewReader(readbuf)
+		defer r.Close()
+		unzip, _ := ioutil.ReadAll(r)
 
-    return string(unzip)
-  }
-  return str
+		return string(unzip)
+	}
+	return str
 }

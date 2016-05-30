@@ -15,17 +15,19 @@
 package resources
 
 import (
-  "github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
 )
 
+// NotFound - Generic resource 404
 func NotFound(resource string, c *gin.Context) {
-  c.JSON(404, gin.H{
-    "message": resource+" not found",
-  })
+	c.JSON(404, gin.H{
+		"message": resource + " not found",
+	})
 }
 
+// InternalError - Generic error
 func InternalError(c *gin.Context) {
-  c.JSON(422, gin.H{
-    "message": "Internal error occured.",
-  })
+	c.JSON(422, gin.H{
+		"message": "Internal error occured.",
+	})
 }
