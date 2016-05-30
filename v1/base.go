@@ -21,9 +21,8 @@ import (
 
 // Routes - Register all routes for API version 1
 func Routes(api *gin.Engine) {
-	//	r := resources.RedisClient()
 	version := api.Group("/v1")
-	//	version.Use(Ratelimit(r))
+	version.Use(Ratelimit(resources.RedisClient()))
 	version.GET("/ping", Ping)
 
 	resources.UserResource{
