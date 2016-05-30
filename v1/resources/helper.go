@@ -18,9 +18,26 @@ import (
 	"bytes"
 	"compress/gzip"
 	"github.com/golang/snappy"
+	"gopkg.in/redis.v3"
 	"io/ioutil"
 	"os"
 )
+
+var redisconn *redis.Client
+
+// RedisClient - Get new redis connection.
+func RedisClient() *redis.Client {
+	if redisconn == nil {
+		redisconn = redis.NewClient(&redis.Options{
+			Addr:     os.Getenv("REDIS_ADDR"),
+			Password: "",
+			DB:       0,
+			PoolSize: 100,
+			Network:  os.Getenv("REDIS_NETWORK"),
+		})
+	}
+	return redisconn
+}
 
 /*
 Zip - Generic compression layer.

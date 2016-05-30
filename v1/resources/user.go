@@ -26,7 +26,6 @@ import (
 
 //UserResource - Users API endpoint
 type UserResource struct {
-	Redis  *redis.Client
 	Engine *gin.RouterGroup
 }
 
@@ -49,8 +48,7 @@ Get - Fetch user by id
 */
 func (u UserResource) Get(c *gin.Context) {
 	user := User{
-		UserResource: &u,
-		UUID:         c.Param("uuid"),
+		UUID: c.Param("uuid"),
 	}
 	if user.GetUsername() == "" {
 		NotFound("User", c)
@@ -83,13 +81,13 @@ Create - User by username and password
 */
 func (u UserResource) Create(c *gin.Context) {
 	user := base64.StdEncoding.EncodeToString([]byte(c.PostForm("username")))
-	_, err := u.Redis.Get("user::name::" + user).Result()
+	_, err := RedisClient().Get("user::name::" + user).Result()
 	if err != redis.Nil {
 		c.JSON(405, gin.H{
 			"message": "User already available",
 		})
 	} else {
-		newuser := NewUser(c.PostForm("username"), c.PostForm("password"), &u)
+		newuser := NewUser(c.PostForm("username"), c.PostForm("password"))
 		if newuser.Save() {
 			c.JSON(201, gin.H{
 				"user": map[string]string{
@@ -118,8 +116,7 @@ ResetUUID - reset users uuid.
 */
 func (u UserResource) ResetUUID(c *gin.Context) {
 	user := User{
-		UserResource: &u,
-		UUID:         c.Param("uuid"),
+		UUID: c.Param("uuid"),
 	}
 	if user.GetUsername() == "" {
 		NotFound("User", c)
@@ -135,7 +132,6 @@ func (u UserResource) ResetUUID(c *gin.Context) {
 
 // User model
 type User struct {
-	UserResource   *UserResource
 	UUID           string
 	Username       string
 	Password       string
@@ -143,12 +139,11 @@ type User struct {
 }
 
 // NewUser returns new user instance
-func NewUser(username string, password string, ur *UserResource) User {
+func NewUser(username string, password string) User {
 	newuser := User{
-		UserResource: ur,
-		Username:     username,
-		Password:     password,
-		UUID:         uuid.NewV4().String(),
+		Username: username,
+		Password: password,
+		UUID:     uuid.NewV4().String(),
 	}
 	v, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
 	newuser.PasswordDigest = string(v)
@@ -157,7 +152,7 @@ func NewUser(username string, password string, ur *UserResource) User {
 
 // Save user by using current redis session to database.
 func (u *User) Save() bool {
-	pipe := u.UserResource.Redis.Pipeline()
+	pipe := RedisClient().Pipeline()
 	defer pipe.Close()
 	pipe.Set("user::id::"+u.GetUUID(), u.EncodedUsername(), 0)
 	pipe.Set("user::name::"+u.EncodedUsername(), u.GetUUID(), 0)
@@ -179,7 +174,7 @@ func (u *User) EncodedUsername() string {
 // GetUUID returns the objects internal UUID or prefetch them from datastore
 func (u *User) GetUUID() string {
 	if u.UUID == "" {
-		val, err := u.UserResource.Redis.Get("user::name::" + u.EncodedUsername()).Result()
+		val, err := RedisClient().Get("user::name::" + u.EncodedUsername()).Result()
 		if err != nil {
 			log.Error(err, "Fetching UUID failed")
 		} else {
@@ -192,7 +187,7 @@ func (u *User) GetUUID() string {
 // ResetUUID sets a new UUID to current user.
 func (u *User) ResetUUID() string {
 	id := uuid.NewV4().String()
-	pipe := u.UserResource.Redis.Pipeline()
+	pipe := RedisClient().Pipeline()
 	defer pipe.Close()
 	pipe.Set("user::id::"+id, u.EncodedUsername(), 0)
 	pipe.Set("user::name::"+u.EncodedUsername(), id, 0)
@@ -209,7 +204,7 @@ func (u *User) ResetUUID() string {
 // GetUsername returns the objects internal username or prefetch them from datastore
 func (u *User) GetUsername() string {
 	if u.Username == "" {
-		val, err := u.UserResource.Redis.Get("user::id::" + u.UUID).Result()
+		val, err := RedisClient().Get("user::id::" + u.UUID).Result()
 		if err != nil {
 			log.Error(err, "Fetching Username failed")
 		} else {
@@ -223,7 +218,7 @@ func (u *User) GetUsername() string {
 // GetPasswordDigest returns the objects internal passwordDigest or prefetch them from datastore
 func (u *User) GetPasswordDigest() string {
 	if u.PasswordDigest == "" {
-		val, err := u.UserResource.Redis.Get("user::pass::" + u.EncodedUsername()).Result()
+		val, err := RedisClient().Get("user::pass::" + u.EncodedUsername()).Result()
 		if err != nil {
 			log.Error(err, "Fetching PasswordDigest failed")
 		} else {

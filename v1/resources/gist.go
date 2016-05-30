@@ -26,7 +26,6 @@ import (
 
 // GistResource - Gists API Endpoint
 type GistResource struct {
-	Redis  *redis.Client
 	Engine *gin.RouterGroup
 }
 
@@ -54,8 +53,7 @@ Get - gist by id
 */
 func (g GistResource) Get(c *gin.Context) {
 	gist := Gist{
-		GistResource: &g,
-		UUID:         c.Param("uuid"),
+		UUID: c.Param("uuid"),
 	}
 	if gist.Exists() == false {
 		NotFound("Gist", c)
@@ -81,9 +79,7 @@ POST /gists/<UUID> - Create or update gist with (n) new snippets.
 }
 */
 func (g GistResource) CreateSnippets(c *gin.Context) {
-	gist := Gist{
-		GistResource: &g,
-	}
+	gist := Gist{}
 	if c.Param("uuid") != "" {
 		gist.UUID = c.Param("uuid")
 	}
@@ -106,13 +102,12 @@ func (g GistResource) CreateSnippets(c *gin.Context) {
 
 //Gist model
 type Gist struct {
-	GistResource *GistResource
-	UUID         string
+	UUID string
 }
 
 //Exists verifies the persistence level.
 func (g *Gist) Exists() bool {
-	val, err := g.GistResource.Redis.Exists("gists::" + g.UUID).Result()
+	val, err := RedisClient().Exists("gists::" + g.UUID).Result()
 	if err != nil {
 		return false
 	}
@@ -121,7 +116,7 @@ func (g *Gist) Exists() bool {
 
 //AddSnippets appends new compressed snippets.
 func (g *Gist) AddSnippets(snippets []map[string]string) bool {
-	pipe := g.GistResource.Redis.Pipeline()
+	pipe := RedisClient().Pipeline()
 	defer pipe.Close()
 	if g.UUID == "" {
 		g.UUID = uuid.NewV4().String()
@@ -142,13 +137,13 @@ func (g *Gist) AddSnippets(snippets []map[string]string) bool {
 
 //GetSnippets returns all uncompressed snippets which are associated to self.
 func (g *Gist) GetSnippets() map[string]map[string]string {
-	snippets, err := g.GistResource.Redis.SMembers("gists::" + g.UUID).Result()
+	snippets, err := RedisClient().SMembers("gists::" + g.UUID).Result()
 	snippetsprecollection := map[string]*redis.StringCmd{}
 	snippetscollection := map[string]map[string]string{}
 	if err != nil {
 		log.Error(err, "Gist not found")
 	} else {
-		pipe := g.GistResource.Redis.Pipeline()
+		pipe := RedisClient().Pipeline()
 		defer pipe.Close()
 		for _, snipp := range snippets {
 			snippetsprecollection[snipp] = pipe.Get("snippets::" + snipp)

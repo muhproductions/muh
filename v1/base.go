@@ -17,34 +17,20 @@ package v1
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/timmyArch/muh-api/v1/resources"
-	"gopkg.in/redis.v3"
-	"os"
 )
-
-// RedisClient - Get new redis connection.
-func RedisClient() *redis.Client {
-	return redis.NewClient(&redis.Options{
-		Addr:     os.Getenv("REDIS_ADDR"),
-		Password: "",
-		DB:       0,
-		Network:  os.Getenv("REDIS_NETWORK"),
-	})
-}
 
 // Routes - Register all routes for API version 1
 func Routes(api *gin.Engine) {
-	r := RedisClient()
+	//	r := resources.RedisClient()
 	version := api.Group("/v1")
-	version.Use(Ratelimit(r))
+	//	version.Use(Ratelimit(r))
 	version.GET("/ping", Ping)
 
 	resources.UserResource{
-		Redis:  r,
 		Engine: version,
 	}.Routes()
 
 	resources.GistResource{
-		Redis:  r,
 		Engine: version,
 	}.Routes()
 
