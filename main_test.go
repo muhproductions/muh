@@ -19,12 +19,12 @@ import (
 	"github.com/appleboy/gofight"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"github.com/timmyArch/muh-api/v1"
+	"github.com/timmyArch/muh-api/v1/resources"
 	"testing"
 )
 
 func conf(t *testing.T) *gofight.RequestConfig {
-	err := v1.RedisClient().FlushDb().Err()
+	err := resources.RedisClient().FlushDb().Err()
 	assert.Equal(t, nil, err, "Flushing Redis failed")
 	gin.SetMode(gin.TestMode)
 	return gofight.New().SetDebug(true)
