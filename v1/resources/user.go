@@ -17,11 +17,9 @@ package resources
 import (
 	"encoding/base64"
 	"github.com/gin-gonic/gin"
-	"github.com/satori/go.uuid"
-	"golang.org/x/crypto/bcrypt"
+	"github.com/timmyArch/muh-api/helper"
+	"github.com/timmyArch/muh-api/v1/models"
 	"gopkg.in/redis.v3"
-
-	log "github.com/Sirupsen/logrus"
 )
 
 //UserResource - Users API endpoint
@@ -36,6 +34,17 @@ func (u UserResource) Routes() {
 	u.Engine.POST("/users/:uuid/uuid", u.ResetUUID)
 }
 
+func checkUserExists(c *gin.Context) models.User {
+	user := models.User{
+		UUID: c.Param("uuid"),
+	}
+	if user.GetUsername() == "" {
+		NotFound("User", c)
+		c.AbortWithStatus(404)
+	}
+	return user
+}
+
 /*
 Get - Fetch user by id
 
@@ -47,19 +56,13 @@ Get - Fetch user by id
 	}
 */
 func (u UserResource) Get(c *gin.Context) {
-	user := User{
-		UUID: c.Param("uuid"),
-	}
-	if user.GetUsername() == "" {
-		NotFound("User", c)
-	} else {
-		c.JSON(200, gin.H{
-			"user": map[string]string{
-				"uuid":     user.GetUUID(),
-				"username": user.GetUsername(),
-			},
-		})
-	}
+	user := checkUserExists(c)
+	c.JSON(200, gin.H{
+		"user": map[string]string{
+			"uuid":     user.GetUUID(),
+			"username": user.GetUsername(),
+		},
+	})
 }
 
 /*
@@ -81,13 +84,13 @@ Create - User by username and password
 */
 func (u UserResource) Create(c *gin.Context) {
 	user := base64.StdEncoding.EncodeToString([]byte(c.PostForm("username")))
-	_, err := RedisClient().Get("user::name::" + user).Result()
+	_, err := helper.RedisClient().Get("user::name::" + user).Result()
 	if err != redis.Nil {
 		c.JSON(405, gin.H{
 			"message": "User already available",
 		})
 	} else {
-		newuser := NewUser(c.PostForm("username"), c.PostForm("password"))
+		newuser := models.NewUser(c.PostForm("username"), c.PostForm("password"))
 		if newuser.Save() {
 			c.JSON(201, gin.H{
 				"user": map[string]string{
@@ -115,115 +118,11 @@ ResetUUID - reset users uuid.
 	}
 */
 func (u UserResource) ResetUUID(c *gin.Context) {
-	user := User{
-		UUID: c.Param("uuid"),
-	}
-	if user.GetUsername() == "" {
-		NotFound("User", c)
-	} else {
-		c.JSON(200, gin.H{
-			"user": map[string]string{
-				"uuid":     user.ResetUUID(),
-				"username": user.GetUsername(),
-			},
-		})
-	}
-}
-
-// User model
-type User struct {
-	UUID           string
-	Username       string
-	Password       string
-	PasswordDigest string
-}
-
-// NewUser returns new user instance
-func NewUser(username string, password string) User {
-	newuser := User{
-		Username: username,
-		Password: password,
-		UUID:     uuid.NewV4().String(),
-	}
-	v, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
-	newuser.PasswordDigest = string(v)
-	return newuser
-}
-
-// Save user by using current redis session to database.
-func (u *User) Save() bool {
-	pipe := RedisClient().Pipeline()
-	defer pipe.Close()
-	pipe.Set("user::id::"+u.GetUUID(), u.EncodedUsername(), 0)
-	pipe.Set("user::name::"+u.EncodedUsername(), u.GetUUID(), 0)
-	pipe.Set("user::pass::"+u.EncodedUsername(), u.GetPasswordDigest(), 0)
-	_, err := pipe.Exec()
-	if err != nil {
-		log.Error(err, "Error during User.Save().")
-		return false
-	}
-	return true
-}
-
-// EncodedUsername encodes the username into base64 to prevent
-// to handle each kind of username.
-func (u *User) EncodedUsername() string {
-	return base64.StdEncoding.EncodeToString([]byte(u.GetUsername()))
-}
-
-// GetUUID returns the objects internal UUID or prefetch them from datastore
-func (u *User) GetUUID() string {
-	if u.UUID == "" {
-		val, err := RedisClient().Get("user::name::" + u.EncodedUsername()).Result()
-		if err != nil {
-			log.Error(err, "Fetching UUID failed")
-		} else {
-			u.UUID = val
-		}
-	}
-	return u.UUID
-}
-
-// ResetUUID sets a new UUID to current user.
-func (u *User) ResetUUID() string {
-	id := uuid.NewV4().String()
-	pipe := RedisClient().Pipeline()
-	defer pipe.Close()
-	pipe.Set("user::id::"+id, u.EncodedUsername(), 0)
-	pipe.Set("user::name::"+u.EncodedUsername(), id, 0)
-	pipe.Del("user::id::" + u.GetUUID())
-	_, err := pipe.Exec()
-	if err != nil {
-		log.Error(err, "Error on resetting UUID.")
-	} else {
-		u.UUID = id
-	}
-	return id
-}
-
-// GetUsername returns the objects internal username or prefetch them from datastore
-func (u *User) GetUsername() string {
-	if u.Username == "" {
-		val, err := RedisClient().Get("user::id::" + u.UUID).Result()
-		if err != nil {
-			log.Error(err, "Fetching Username failed")
-		} else {
-			str, _ := base64.StdEncoding.DecodeString(val)
-			u.Username = string(str)
-		}
-	}
-	return u.Username
-}
-
-// GetPasswordDigest returns the objects internal passwordDigest or prefetch them from datastore
-func (u *User) GetPasswordDigest() string {
-	if u.PasswordDigest == "" {
-		val, err := RedisClient().Get("user::pass::" + u.EncodedUsername()).Result()
-		if err != nil {
-			log.Error(err, "Fetching PasswordDigest failed")
-		} else {
-			u.PasswordDigest = val
-		}
-	}
-	return u.PasswordDigest
+	user := checkUserExists(c)
+	c.JSON(200, gin.H{
+		"user": map[string]string{
+			"uuid":     user.ResetUUID(),
+			"username": user.GetUsername(),
+		},
+	})
 }

@@ -19,12 +19,12 @@ import (
 	"github.com/appleboy/gofight"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"github.com/timmyArch/muh-api/v1/resources"
+	"github.com/timmyArch/muh-api/helper"
 	"testing"
 )
 
 func conf(t *testing.T) *gofight.RequestConfig {
-	err := resources.RedisClient().FlushDb().Err()
+	err := helper.RedisClient().FlushDb().Err()
 	assert.Equal(t, nil, err, "Flushing Redis failed")
 	gin.SetMode(gin.TestMode)
 	return gofight.New().SetDebug(true)
@@ -89,4 +89,36 @@ func TestGistCreateAndFindGist(t *testing.T) {
 			assert.FailNow(t, "No snippet matched")
 		}
 	}
+}
+
+func TestUserCreateReturns201(t *testing.T) {
+	conf(t).POST("/v1/users").
+		SetFORM(gofight.H{
+			"username": "moo",
+			"password": "pass",
+		}).
+		Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
+			assert.Equal(t, 201, r.Code, "ResponseCode should be 201")
+		})
+}
+
+func TestUserReCreateReturns405(t *testing.T) {
+	conf := conf(t)
+	conf.POST("/v1/users").
+		SetFORM(gofight.H{
+			"username": "moo",
+			"password": "pass",
+		}).
+		Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
+			assert.Equal(t, 201, r.Code, "ResponseCode should be 201")
+		})
+
+	conf.POST("/v1/users").
+		SetFORM(gofight.H{
+			"username": "moo",
+			"password": "pass",
+		}).
+		Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
+			assert.Equal(t, 405, r.Code, "ResponseCode should be 405")
+		})
 }

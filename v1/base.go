@@ -16,13 +16,14 @@ package v1
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/timmyArch/muh-api/helper"
 	"github.com/timmyArch/muh-api/v1/resources"
 )
 
 // Routes - Register all routes for API version 1
 func Routes(api *gin.Engine) {
 	version := api.Group("/v1")
-	version.Use(Ratelimit(resources.RedisClient()))
+	version.Use(Ratelimit(helper.RedisClient()))
 	version.GET("/ping", Ping)
 
 	resources.UserResource{

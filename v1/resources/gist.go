@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/satori/go.uuid"
+	"github.com/timmyArch/muh-api/helper"
 	"gopkg.in/redis.v3"
 	"strconv"
 
@@ -107,7 +108,7 @@ type Gist struct {
 
 //Exists verifies the persistence level.
 func (g *Gist) Exists() bool {
-	val, err := RedisClient().Exists("gists::" + g.UUID).Result()
+	val, err := helper.RedisClient().Exists("gists::" + g.UUID).Result()
 	if err != nil {
 		return false
 	}
@@ -116,7 +117,7 @@ func (g *Gist) Exists() bool {
 
 //AddSnippets appends new compressed snippets.
 func (g *Gist) AddSnippets(snippets []map[string]string) bool {
-	pipe := RedisClient().Pipeline()
+	pipe := helper.RedisClient().Pipeline()
 	defer pipe.Close()
 	if g.UUID == "" {
 		g.UUID = uuid.NewV4().String()
@@ -125,7 +126,7 @@ func (g *Gist) AddSnippets(snippets []map[string]string) bool {
 		tempuuid := uuid.NewV4().String()
 		pipe.SAdd("gists::"+g.UUID, tempuuid)
 		json, _ := json.Marshal(v)
-		pipe.Set("snippets::"+tempuuid, Zip(string(json)), 0)
+		pipe.Set("snippets::"+tempuuid, helper.Zip(string(json)), 0)
 	}
 	_, err := pipe.Exec()
 	if err != nil {
@@ -137,13 +138,13 @@ func (g *Gist) AddSnippets(snippets []map[string]string) bool {
 
 //GetSnippets returns all uncompressed snippets which are associated to self.
 func (g *Gist) GetSnippets() map[string]map[string]string {
-	snippets, err := RedisClient().SMembers("gists::" + g.UUID).Result()
+	snippets, err := helper.RedisClient().SMembers("gists::" + g.UUID).Result()
 	snippetsprecollection := map[string]*redis.StringCmd{}
 	snippetscollection := map[string]map[string]string{}
 	if err != nil {
 		log.Error(err, "Gist not found")
 	} else {
-		pipe := RedisClient().Pipeline()
+		pipe := helper.RedisClient().Pipeline()
 		defer pipe.Close()
 		for _, snipp := range snippets {
 			snippetsprecollection[snipp] = pipe.Get("snippets::" + snipp)
@@ -151,7 +152,7 @@ func (g *Gist) GetSnippets() map[string]map[string]string {
 		pipe.Exec()
 		for k, v := range snippetsprecollection {
 			var dat map[string]string
-			if err := json.Unmarshal([]byte(Unzip(v.Val())), &dat); err != nil {
+			if err := json.Unmarshal([]byte(helper.Unzip(v.Val())), &dat); err != nil {
 				log.Error(err, "Snippet loading failed - "+k)
 			} else {
 				snippetscollection[k] = dat
