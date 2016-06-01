@@ -16,7 +16,7 @@ package v1
 
 import (
 	"github.com/gin-gonic/gin"
-	"gopkg.in/redis.v3"
+	"github.com/timmyArch/muh-api/helper"
 	"os"
 	"strconv"
 	"strings"
@@ -26,21 +26,18 @@ import (
 // Ratelimit - Middleware to handle ratelimiting.
 // - Rejecting reqests...
 // - Bumping request/ip count ...
-func Ratelimit(redis *redis.Client) gin.HandlerFunc {
+func Ratelimit() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		t := time.Now()
 
-		pipe := redis.Pipeline()
-		bump := 1 + c.Request.ContentLength
+		pipe := helper.RedisClient().Pipeline()
 		hits := pipe.Incr("ratelimit::hits::" + c.ClientIP())
-		limit := pipe.IncrBy("ratelimit::score::"+c.ClientIP(), bump)
 		bytes := pipe.IncrBy("ratelimit::bytes::"+c.ClientIP(), c.Request.ContentLength)
 		defer pipe.Close()
 		pipe.Exec()
 
 		ratelimitcheck("Hits", hits.Val(), c)
-		ratelimitcheck("Score", limit.Val(), c)
 		ratelimitcheck("Bytes", bytes.Val(), c)
 
 		c.Header("X-Ratelimit-Latency", time.Since(t).String())

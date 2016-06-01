@@ -20,6 +20,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/timmyArch/muh-api/helper"
+	"os"
 	"testing"
 )
 
@@ -121,4 +122,62 @@ func TestUserReCreateReturns405(t *testing.T) {
 		Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
 			assert.Equal(t, 405, r.Code, "ResponseCode should be 405")
 		})
+}
+
+func TestLimitBytesReturns429(t *testing.T) {
+	if os.Getenv("LIMIT_BYTES") != "" && os.Getenv("LIMIT_HITS") == "" {
+		conf := conf(t)
+		for i := 0; i < 100; i++ {
+			conf.GET("/v1/gists/ashdkjasd").
+				SetFORM(gofight.H{
+					"snippet[0]lang":  "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+					"snippet[0]paste": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+				}).
+				Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {})
+		}
+		conf.POST("/v1/users").
+			SetFORM(gofight.H{
+				"username": "moo",
+				"password": "pass",
+			}).
+			Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
+				assert.Equal(t, 429, r.Code, "ResponseCode should be 429")
+			})
+	}
+}
+
+func TestLimitHitsReturns429(t *testing.T) {
+	if os.Getenv("LIMIT_HITS") != "" && os.Getenv("LIMIT_BYTES") == "" {
+		conf := conf(t)
+		for i := 0; i < 100; i++ {
+			conf.GET("/v1/gists/ashdkjasd").
+				Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {})
+		}
+		conf.POST("/v1/users").
+			SetFORM(gofight.H{
+				"username": "moo",
+				"password": "pass",
+			}).
+			Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
+				assert.Equal(t, 429, r.Code, "ResponseCode should be 429")
+			})
+	}
+}
+
+func TestLimitHitsAndBytesReturns429(t *testing.T) {
+	if os.Getenv("LIMIT_HITS") != "" && os.Getenv("LIMIT_BYTES") != "" {
+		conf := conf(t)
+		for i := 0; i < 100; i++ {
+			conf.GET("/v1/gists/ashdkjasd").
+				Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {})
+		}
+		conf.POST("/v1/users").
+			SetFORM(gofight.H{
+				"username": "moo",
+				"password": "pass",
+			}).
+			Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
+				assert.Equal(t, 429, r.Code, "ResponseCode should be 429")
+			})
+	}
 }
