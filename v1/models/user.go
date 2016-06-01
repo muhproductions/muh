@@ -48,7 +48,7 @@ func (u *User) Save() bool {
 	pipe.Set(u.keyName(), u.GetUUID(), 0)
 	pipe.Set(u.keyPass(), u.GetPasswordDigest(), 0)
 	_, err := pipe.Exec()
-	return !(err != nil)
+	return (err == nil)
 }
 
 func (u *User) keyID() string {
