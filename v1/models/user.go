@@ -20,8 +20,6 @@ import (
 	"github.com/timmyArch/muh-api/helper"
 	"golang.org/x/crypto/bcrypt"
 	"reflect"
-
-	log "github.com/Sirupsen/logrus"
 )
 
 // User model
@@ -50,11 +48,7 @@ func (u *User) Save() bool {
 	pipe.Set(u.keyName(), u.GetUUID(), 0)
 	pipe.Set(u.keyPass(), u.GetPasswordDigest(), 0)
 	_, err := pipe.Exec()
-	if err != nil {
-		log.Error(err, "Error during User.Save().")
-		return false
-	}
-	return true
+	return !(err != nil)
 }
 
 func (u *User) keyID() string {
@@ -83,15 +77,11 @@ func (u *User) EncodedUsername() string {
 }
 
 func (u *User) cachedResponse(prop string, key string) string {
-	if reflect.ValueOf(u).Elem().FieldByName(prop).String() == "" {
-		val, err := helper.RedisClient().Get(key).Result()
-		if err != nil {
-			log.Error(err, "Fetching "+key+" failed")
-		} else {
-			reflect.ValueOf(u).Elem().FieldByName(prop).SetString(val)
-		}
+	v := reflect.ValueOf(u).Elem().FieldByName(prop)
+	if v.String() == "" {
+		v.SetString(helper.RedisClient().Get(key).Val())
 	}
-	return reflect.ValueOf(u).Elem().FieldByName(prop).String()
+	return v.String()
 }
 
 // GetUUID returns the objects internal UUID or prefetch them from datastore
@@ -107,12 +97,8 @@ func (u *User) ResetUUID() string {
 	pipe.Set(u.keyID(), u.EncodedUsername(), 0)
 	pipe.Set(u.keyName(), id, 0)
 	pipe.Del(u.keyID())
-	_, err := pipe.Exec()
-	if err != nil {
-		log.Error(err, "Error on resetting UUID.")
-	} else {
-		u.UUID = id
-	}
+	pipe.Exec()
+	u.UUID = id
 	return id
 }
 
