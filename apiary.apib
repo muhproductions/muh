@@ -3,30 +3,52 @@ HOST: http://polls.apiblueprint.org/
 
 # MuhApi
 
-Polls is a simple API allowing consumers to view polls and vote in them.
+Muh api provides a in memory paste service, which immediately
+stores your pastes. It is optimized on low latency access.
 
-## Gist manipulations
+## Gist
 
 A gist is just the logical layer on top of snippets. 
 It could also be called as a SnippetCollection.
 
-
+## Gist/Snippet handling [/gists]
 
 ### Fetching a Gist [GET /gists/{uuid}]
 
 + Parameters
-    + uuid (string, required) - Gists unique identifier
+    + uuid (string) - Gists unique identifier
 
 + Response 200 (application/json)
     + Headers
-        X-Ratelimit-Hits: Current ratelimit hits are tracked
-    + Attributes(Gist)
+        X-Ratelimit-Hits: Amount of requests until last reset
+        X-Ratelimit-Bytes: Amount of traffic (upload/download) until last reset
+    + Attributes(Gist full)
     + Body
-    
+
+### Create a gist with snippets [POST /gists]
+
++ Request (application/x-www-form-urlencoded)
+    + Attributes(Snippet)
+    + Body
+        snippets[0]paste=somerubycode&
+        snippets[0]lang=ruby&
+        snippets[1]paste=moarrubycode&
+        snippets[1]lang=ruby
+        
++ Response 201 (application/json)
+    + Headers
+        X-Ratelimit-Hits: Amount of requests until last reset
+        X-Ratelimit-Bytes: Amount of traffic (upload/download) until last reset
+    + Attributes(Gist short)
+    + Body
 
 # Data Structures
 
-## Gist (object)
+## Gist short (object)
++ gist: 
+  + uuid: `2059d36c-cd5a-4271-8abd-cf184f04db7c` (string, required) - Unique gist identifier.
+
+## Gist full (object)
 + gist: 
   + uuid: `2059d36c-cd5a-4271-8abd-cf184f04db7c` (string, required) - Unique gist identifier.
 + snippets: (array[Snippet]) - A list of snippets
