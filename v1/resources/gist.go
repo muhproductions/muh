@@ -17,8 +17,8 @@ package resources
 import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"github.com/muhproductions/muh-api/helper"
 	"github.com/satori/go.uuid"
-	"github.com/timmyArch/muh-api/helper"
 	"gopkg.in/redis.v3"
 	"strconv"
 

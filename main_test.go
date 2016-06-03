@@ -18,8 +18,8 @@ import (
 	"encoding/json"
 	"github.com/appleboy/gofight"
 	"github.com/gin-gonic/gin"
+	"github.com/muhproductions/muh-api/helper"
 	"github.com/stretchr/testify/assert"
-	"github.com/timmyArch/muh-api/helper"
 	"os"
 	"testing"
 )

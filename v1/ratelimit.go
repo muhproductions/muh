@@ -16,7 +16,7 @@ package v1
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/timmyArch/muh-api/helper"
+	"github.com/muhproductions/muh-api/helper"
 	"os"
 	"strconv"
 	"strings"

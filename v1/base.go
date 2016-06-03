@@ -16,7 +16,7 @@ package v1
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/timmyArch/muh-api/v1/resources"
+	"github.com/muhproductions/muh-api/v1/resources"
 )
 
 // Routes - Register all routes for API version 1
