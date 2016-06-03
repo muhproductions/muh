@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/muhproductions/muh.svg?branch=master)](https://travis-ci.org/muhproductions/muh)
 [![Coverage Status](https://coveralls.io/repos/github/muhproductions/muh/badge.svg?branch=master)](https://coveralls.io/github/muhproductions/muh?branch=master)
-[![Codebeat](https://codebeat.co/badges/f4dc4816-0b43-4b35-8acc-1f743692922c)](https://codebeat.co/projects/github-com-timmyarch-muh)
+[![Codebeat](https://codebeat.co/badges/e5a1334f-8ce4-4347-87cd-9860ac099ee8)](https://codebeat.co/projects/github-com-muhproductions-muh)
 [![GoDoc](https://godoc.org/github.com/muhproductions/muh?status.svg)](https://godoc.org/github.com/muhproductions/muh)
 [![Go Report Card](https://goreportcard.com/badge/github.com/muhproductions/muh)](https://goreportcard.com/report/github.com/muhproductions/muh)
 
