@@ -1,0 +1,36 @@
+FORMAT: 1A
+HOST: http://polls.apiblueprint.org/
+
+# MuhApi
+
+Polls is a simple API allowing consumers to view polls and vote in them.
+
+## Gist manipulations
+
+A gist is just the logical layer on top of snippets. 
+It could also be called as a SnippetCollection.
+
+
+
+### Fetching a Gist [GET /gists/{uuid}]
+
++ Parameters
+    + uuid (string, required) - Gists unique identifier
+
++ Response 200 (application/json)
+    + Headers
+        X-Ratelimit-Hits: Current ratelimit hits are tracked
+    + Attributes(Gist)
+    + Body
+    
+
+# Data Structures
+
+## Gist (object)
++ gist: 
+  + uuid: `2059d36c-cd5a-4271-8abd-cf184f04db7c` (string, required) - Unique gist identifier.
++ snippets: (array[Snippet]) - A list of snippets
+
+## Snippet (object)
++ paste: `some ruby code` (string, required) - Raw content of paste.
++ lang: `ruby` (string, required) - Which kind of programming language the paste is.
