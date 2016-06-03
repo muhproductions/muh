@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"github.com/appleboy/gofight"
 	"github.com/gin-gonic/gin"
-	"github.com/muhproductions/muh-api/helper"
+	"github.com/muhproductions/muh/helper"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"

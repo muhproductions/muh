@@ -15,7 +15,7 @@
 package main
 
 import "github.com/gin-gonic/gin"
-import "github.com/muhproductions/muh-api/v1"
+import "github.com/muhproductions/muh/v1"
 
 // GetEngine returns the GinEngine, which got all routes.
 func GetEngine() *gin.Engine {

@@ -16,7 +16,7 @@ package models
 
 import (
 	"encoding/base64"
-	"github.com/muhproductions/muh-api/helper"
+	"github.com/muhproductions/muh/helper"
 	"github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 	"reflect"

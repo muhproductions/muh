@@ -17,8 +17,8 @@ package resources
 import (
 	"encoding/base64"
 	"github.com/gin-gonic/gin"
-	"github.com/muhproductions/muh-api/helper"
-	"github.com/muhproductions/muh-api/v1/models"
+	"github.com/muhproductions/muh/helper"
+	"github.com/muhproductions/muh/v1/models"
 	"gopkg.in/redis.v3"
 )
 
