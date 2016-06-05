@@ -16,6 +16,7 @@ package models
 
 import (
 	"encoding/base64"
+	"errors"
 	"github.com/muhproductions/muh/helper"
 	"github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -35,9 +36,52 @@ func NewUser(username string, password string) User {
 		Username: username,
 		UUID:     uuid.NewV4().String(),
 	}
-	v, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
-	newuser.PasswordDigest = string(v)
+	newuser.SetPassword(password)
 	return newuser
+}
+
+// FindUserByName will look for a user and will return
+// it available. Otherwise it returns an error.
+func FindUserByName(name string) (User, error) {
+	return findAtomicUser(User{Username: name})
+}
+
+// FindUserByUUID will look for a user and will return
+// it available. Otherwise it returns an error.
+func FindUserByUUID(uuid string) (User, error) {
+	return findAtomicUser(User{UUID: uuid})
+}
+
+func findAtomicUser(user User) (User, error) {
+	if user.Available() {
+		return user, nil
+	}
+	return user, errors.New("user not existing")
+}
+
+//EqualsPassword verifies password
+func (u *User) EqualsPassword(password string) bool {
+	err := bcrypt.CompareHashAndPassword(
+		[]byte(u.GetPasswordDigest()),
+		[]byte(password),
+	)
+	return (err == nil)
+}
+
+//SetPassword calculates a bcrypt hash and updates objects PasswordDigest.
+func (u *User) SetPassword(password string) {
+	v, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+	u.PasswordDigest = string(v)
+}
+
+//Available check if user is available.
+func (u *User) Available() bool {
+	if u.Username != "" {
+		return helper.RedisClient().Exists(u.keyName()).Val()
+	} else if u.UUID != "" {
+		return helper.RedisClient().Exists(u.keyID()).Val()
+	}
+	return false
 }
 
 // Save user by using current redis session to database.

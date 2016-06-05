@@ -15,11 +15,8 @@
 package resources
 
 import (
-	"encoding/base64"
 	"github.com/gin-gonic/gin"
-	"github.com/muhproductions/muh/helper"
 	"github.com/muhproductions/muh/v1/models"
-	"gopkg.in/redis.v3"
 )
 
 //UserResource - Users API endpoint
@@ -27,11 +24,18 @@ type UserResource struct {
 	Engine *gin.RouterGroup
 }
 
+//Login - keeps user data.
+type Login struct {
+	Username string `form:"username" json:"username" binding:"required"`
+	Password string `form:"password" json:"password" binding:"required"`
+}
+
 //Routes - Users routing definition
 func (u UserResource) Routes() {
-	u.Engine.GET("/users/:uuid", u.Get)
+	u.Engine.GET("/users/:uuid/profile", u.Get)
+	u.Engine.PUT("/users/:uuid/uuid", u.ResetUUID)
+	u.Engine.POST("/users/authorize", u.Authorize)
 	u.Engine.POST("/users", u.Create)
-	u.Engine.POST("/users/:uuid/uuid", u.ResetUUID)
 }
 
 func checkUserExists(c *gin.Context) models.User {
@@ -43,6 +47,19 @@ func checkUserExists(c *gin.Context) models.User {
 		c.AbortWithStatus(404)
 	}
 	return user
+}
+
+//Authorize - authorize users by json response
+func (u UserResource) Authorize(c *gin.Context) {
+	var login Login
+	if (c.PostForm("username") == "" && c.BindJSON(&login) == nil) || c.Bind(&login) == nil {
+		user := models.User{Username: login.Username}
+		if user.EqualsPassword(login.Password) {
+			c.AbortWithStatus(204)
+			return
+		}
+		c.AbortWithStatus(403)
+	}
 }
 
 /*
@@ -83,26 +100,28 @@ Create - User by username and password
 	}
 */
 func (u UserResource) Create(c *gin.Context) {
-	user := base64.StdEncoding.EncodeToString([]byte(c.PostForm("username")))
-	_, err := helper.RedisClient().Get("user::name::" + user).Result()
-	if err != redis.Nil {
-		c.JSON(405, gin.H{
-			"message": "User already available",
+	var login Login
+	if c.PostForm("username") == "" {
+		c.BindJSON(&login)
+	} else {
+		c.Bind(&login)
+	}
+	newuser := models.NewUser(login.Username, login.Password)
+	if newuser.Available() {
+		c.AbortWithStatus(405)
+		return
+	}
+	if newuser.Save() {
+		c.JSON(201, gin.H{
+			"user": map[string]string{
+				"uuid":     newuser.UUID,
+				"username": newuser.Username,
+			},
 		})
 	} else {
-		newuser := models.NewUser(c.PostForm("username"), c.PostForm("password"))
-		if newuser.Save() {
-			c.JSON(201, gin.H{
-				"user": map[string]string{
-					"uuid":     newuser.UUID,
-					"username": newuser.Username,
-				},
-			})
-		} else {
-			c.JSON(422, gin.H{
-				"message": "Createing new user failed.",
-			})
-		}
+		c.JSON(422, gin.H{
+			"message": "Createing new user failed.",
+		})
 	}
 }
 

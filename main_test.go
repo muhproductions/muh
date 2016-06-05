@@ -181,3 +181,63 @@ func TestLimitHitsAndBytesReturns429(t *testing.T) {
 			})
 	}
 }
+
+func TestUserAuthorizeForm(t *testing.T) {
+	conf := conf(t)
+	conf.POST("/v1/users").
+		SetFORM(gofight.H{
+			"username": "moo",
+			"password": "pass",
+		}).
+		Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
+			assert.Equal(t, 201, r.Code, "ResponseCode should be 429")
+		})
+
+	conf.POST("/v1/users/authorize").
+		SetFORM(gofight.H{
+			"username": "moo",
+			"password": "wrong_pass",
+		}).
+		Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
+			assert.Equal(t, 403, r.Code, "ResponseCode should be 403")
+		})
+
+	conf.POST("/v1/users/authorize").
+		SetFORM(gofight.H{
+			"username": "moo",
+			"password": "pass",
+		}).
+		Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
+			assert.Equal(t, 204, r.Code, "ResponseCode should be 204")
+		})
+}
+
+func TestUserAuthorizeJSON(t *testing.T) {
+	conf := conf(t)
+	conf.POST("/v1/users").
+		SetFORM(gofight.H{
+			"username": "moo",
+			"password": "pass",
+		}).
+		Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
+			assert.Equal(t, 201, r.Code, "ResponseCode should be 429")
+		})
+
+	conf.POST("/v1/users/authorize").
+		SetJSON(gofight.D{
+			"username": "moo",
+			"password": "wrong_pass",
+		}).
+		Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
+			assert.Equal(t, 403, r.Code, "ResponseCode should be 403")
+		})
+
+	conf.POST("/v1/users/authorize").
+		SetJSON(gofight.D{
+			"username": "moo",
+			"password": "pass",
+		}).
+		Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
+			assert.Equal(t, 204, r.Code, "ResponseCode should be 204")
+		})
+}
