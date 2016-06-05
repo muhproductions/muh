@@ -101,10 +101,10 @@ Create - User by username and password
 */
 func (u UserResource) Create(c *gin.Context) {
 	var login Login
-	if c.PostForm("username") == "" {
-		c.BindJSON(&login)
-	} else {
-		c.Bind(&login)
+	err := c.PostForm("username") == "" && c.BindJSON(&login) == nil || c.Bind(&login) == nil
+	if !err {
+		c.AbortWithStatus(400)
+		return
 	}
 	newuser := models.NewUser(login.Username, login.Password)
 	if newuser.Available() {
