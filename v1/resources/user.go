@@ -104,10 +104,12 @@ func (u UserResource) Create(c *gin.Context) {
 	err := c.PostForm("username") == "" && c.BindJSON(&login) == nil || c.Bind(&login) == nil
 	if !err {
 		c.AbortWithStatus(400)
+		return
 	}
 	newuser := models.NewUser(login.Username, login.Password)
 	if newuser.Available() {
 		c.AbortWithStatus(405)
+		return
 	}
 	if newuser.Save() {
 		c.JSON(201, gin.H{
