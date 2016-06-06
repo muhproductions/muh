@@ -11,23 +11,23 @@ stores your pastes. It is optimized on low latency access.
 A gist is just the logical layer on top of snippets. 
 It could also be called as a SnippetCollection.
 
-## Gist/Snippet handling [/gists]
+## Gist/Snippet handling [/v1/gists]
 
 Creating gists, adding snippets and requesting gists.
 
-### Fetching a Gist [GET /gists/{uuid}]
+### Fetching a Gist [GET /v1/gists/{uuid}]
 
 + Parameters
     + uuid (string) - Gists unique identifier
 
 + Response 200 (application/json)
+    + Attributes(Gist full)
     + Headers
         X-Ratelimit-Hits: Amount of requests until last reset
         X-Ratelimit-Bytes: Amount of traffic (upload/download) until last reset
-    + Attributes(Gist full)
     + Body
 
-### Create a gist with snippets [POST /gists]
+### Create a gist with snippets [POST /v1/gists]
 
 + Request (application/x-www-form-urlencoded)
     + Attributes(Snippet)
@@ -44,7 +44,107 @@ Creating gists, adding snippets and requesting gists.
     + Attributes(Gist short)
     + Body
 
+## User/Login handling [/v1/users]
+
+### Get users profile [GET /v1/users/{uuid}/profile]
+
++ Parameters
+    + uuid (string) - Users unique identifier
+
++ Response 200 (application/json)
+    + Attributes(User)
+    + Headers
+        X-Ratelimit-Hits: Amount of requests until last reset
+        X-Ratelimit-Bytes: Amount of traffic (upload/download) until last reset
+    + Body
+
++ Response 404 (application/json)
+    + Headers
+        X-Ratelimit-Hits: Amount of requests until last reset
+        X-Ratelimit-Bytes: Amount of traffic (upload/download) until last reset
+
+### Create user [POST /v1/users]
+
++ Request (application/json)
+    + Attributes(Login)
+
++ Request (application/x-www-form-urlencoded)
+    + Attributes(Login)
+    + Body
+        username=moo&
+        password=pass
+
++ Response 200 (application/json)
+    + Attributes(User)
+    + Headers
+        X-Ratelimit-Hits: Amount of requests until last reset
+        X-Ratelimit-Bytes: Amount of traffic (upload/download) until last reset
+    + Body
+
++ Response 405 (application/json)
+    + Headers
+        X-Ratelimit-Hits: Amount of requests until last reset
+        X-Ratelimit-Bytes: Amount of traffic (upload/download) until last reset
+
++ Response 400 (application/json)
+    + Headers
+        X-Ratelimit-Hits: Amount of requests until last reset
+        X-Ratelimit-Bytes: Amount of traffic (upload/download) until last reset
+
+### Verify user/password combination [POST /v1/users/authorize]
+
++ Request (application/json)
+    + Attributes(Login)
+
++ Request (application/x-www-form-urlencoded)
+    + Attributes(Login)
+    + Body
+        username=moo&
+        password=pass
+
++ Response 204 (application/json)
+    + Headers
+        X-Ratelimit-Hits: Amount of requests until last reset
+        X-Ratelimit-Bytes: Amount of traffic (upload/download) until last reset
+    
++ Response 403 (application/json)
+    + Headers
+        X-Ratelimit-Hits: Amount of requests until last reset
+        X-Ratelimit-Bytes: Amount of traffic (upload/download) until last reset
+
++ Response 400 (application/json)
+    + Headers
+        X-Ratelimit-Hits: Amount of requests until last reset
+        X-Ratelimit-Bytes: Amount of traffic (upload/download) until last reset
+
+### Reset users uuid [PUT /v1/users/{uuid}/uuid]
+
++ Parameters
+    + uuid (string) - Users unique identifier
+
++ Response 200 (application/json)
+    + Attributes(User)
+    + Headers
+        X-Ratelimit-Hits: Amount of requests until last reset
+        X-Ratelimit-Bytes: Amount of traffic (upload/download) until last reset
+    + Body
+
++ Response 404 (application/json)
+    + Headers
+        X-Ratelimit-Hits: Amount of requests until last reset
+        X-Ratelimit-Bytes: Amount of traffic (upload/download) until last reset
+
+
 # Data Structures
+
+## Login (object)
++ username: `moo` (string, required) - Username
++ password: `pass` (string, required) - Password
+
+## User (object)
++ user:
+    + uuid: `dab0759-3c0f-43d6-9177-2d718db61b3f` (string) - UserID
+    + username: `moo` (string) - Username
 
 ## Gist short (object)
 + gist: 
