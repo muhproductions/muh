@@ -20,7 +20,6 @@ import (
 	"github.com/muhproductions/muh/helper"
 	"github.com/satori/go.uuid"
 	"gopkg.in/redis.v3"
-	"strconv"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -68,6 +67,15 @@ func (g GistResource) Get(c *gin.Context) {
 	}
 }
 
+type rawGist struct {
+	Snippets []rawSnippet `json:"snippets"`
+}
+
+type rawSnippet struct {
+	Paste string `json:"paste"`
+	Lang  string `json:"lang"`
+}
+
 /*
 CreateSnippets - Create or add new Snippets
 
@@ -84,21 +92,28 @@ func (g GistResource) CreateSnippets(c *gin.Context) {
 	if c.Param("uuid") != "" {
 		gist.UUID = c.Param("uuid")
 	}
+	var rawgist rawGist
 	snippets := []map[string]string{}
-	c.Request.ParseForm()
-	for i := 0; i < len(c.Request.Form)/2; i++ {
-		si := strconv.Itoa(i)
-		snippets = append(snippets, map[string]string{
-			"paste": string(c.Request.PostFormValue("snippet[" + si + "]paste")),
-			"lang":  string(c.Request.PostFormValue("snippet[" + si + "]lang")),
-		})
+	if c.BindJSON(&rawgist) == nil {
+		for _, snip := range rawgist.Snippets {
+			snippets = append(snippets, map[string]string{
+				"paste": snip.Paste,
+				"lang":  snip.Lang,
+			})
+		}
+	} else {
+		return
 	}
-	gist.AddSnippets(snippets)
-	c.JSON(201, gin.H{
-		"gist": map[string]string{
-			"uuid": gist.UUID,
-		},
-	})
+	if len(snippets) > 0 {
+		gist.AddSnippets(snippets)
+		c.JSON(201, gin.H{
+			"gist": map[string]string{
+				"uuid": gist.UUID,
+			},
+		})
+	} else {
+		c.AbortWithStatus(400)
+	}
 }
 
 //Gist model

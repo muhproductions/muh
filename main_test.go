@@ -40,12 +40,23 @@ func Test404(t *testing.T) {
 
 func TestGistCreateReturns201(t *testing.T) {
 	conf(t).POST("/v1/gists").
-		SetFORM(gofight.H{
-			"snippet[0]lang":  "ruby",
-			"snippet[0]paste": "some ruby code",
-		}).
+		SetBody("{\"snippets\":[{\"paste\":\"mooo ruby\",\"lang\":\"ruby\"},{\"paste\":\"huiii go\",\"lang\":\"go\"}]}").
 		Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
 			assert.Equal(t, 201, r.Code, "ResponseCode should be 201")
+		})
+}
+
+func TestGistInvalidCreateReturns400(t *testing.T) {
+	conf(t).POST("/v1/gists").
+		SetBody("{\"snip\":[{\"paste\":\"mooo ruby\",\"lang\":\"ruby\"},{\"paste\":\"huiii go\",\"lang\":\"go\"}]}").
+		Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
+			assert.Equal(t, 400, r.Code, "ResponseCode should be 400")
+		})
+
+	conf(t).POST("/v1/gists").
+		SetBody("{\"snippets\":{\"paste\":\"mooo ruby\",\"lang\":\"ruby\"}}").
+		Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
+			assert.Equal(t, 400, r.Code, "ResponseCode should be 400")
 		})
 }
 
@@ -55,12 +66,7 @@ func TestGistCreateAndFindGist(t *testing.T) {
 	var secondcall map[string]interface{}
 
 	conf.POST("/v1/gists").
-		SetFORM(gofight.H{
-			"snippet[0]lang":  "ruby",
-			"snippet[0]paste": "some ruby code",
-			"snippet[1]lang":  "go",
-			"snippet[1]paste": "some go code",
-		}).
+		SetBody("{\"snippets\":[{\"paste\":\"mooo ruby\",\"lang\":\"ruby\"},{\"paste\":\"huiii go\",\"lang\":\"go\"}]}").
 		Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
 			assert.Equal(t, 201, r.Code, "ResponseCode should be 201")
 			jsonerror := json.Unmarshal(r.Body.Bytes(), &firstcall)
