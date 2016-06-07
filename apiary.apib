@@ -29,14 +29,16 @@ Creating gists, adding snippets and requesting gists.
 
 ### Create a gist with snippets [POST /v1/gists]
 
-+ Request (application/x-www-form-urlencoded)
++ Request (application/json)
     + Attributes(Snippet)
     + Body
-        snippets[0]paste=somerubycode&
-        snippets[0]lang=ruby&
-        snippets[1]paste=moarrubycode&
-        snippets[1]lang=ruby
-        
+        { 
+            "snippets": [
+                { "paste": "some code", "lang": "ruby" }
+                { "paste": "some code", "lang": "go" }
+            ]
+        }
+          
 + Response 201 (application/json)
     + Headers
         X-Ratelimit-Hits: Amount of requests until last reset
