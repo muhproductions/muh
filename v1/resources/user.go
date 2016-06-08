@@ -32,15 +32,16 @@ type Login struct {
 
 //Routes - Users routing definition
 func (u UserResource) Routes() {
-	u.Engine.GET("/users/:uuid/profile", u.Get)
-	u.Engine.PUT("/users/:uuid/uuid", u.ResetUUID)
+	u.Engine.GET("/users/:userid/profile", u.Get)
+	u.Engine.PUT("/users/:userid/gists", GistResource{Engine: u.Engine}.CreateSnippets)
+	u.Engine.PUT("/users/:userid/uuid", u.ResetUUID)
 	u.Engine.POST("/users/authorize", u.Authorize)
 	u.Engine.POST("/users", u.Create)
 }
 
 func checkUserExists(c *gin.Context) models.User {
 	user := models.User{
-		UUID: c.Param("uuid"),
+		UUID: c.Param("userid"),
 	}
 	if user.GetUsername() == "" {
 		NotFound("User", c)
