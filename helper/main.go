@@ -17,13 +17,57 @@ package helper
 import (
 	"bytes"
 	"compress/gzip"
+	"github.com/boltdb/bolt"
 	"github.com/golang/snappy"
 	"gopkg.in/redis.v3"
 	"io/ioutil"
 	"os"
 )
 
+// Callbacks - event callbacks wich would be called
+var Callbacks []func(string)
+
+// Bolt obtains a db connection
+var Bolt *bolt.DB
+
 var redisconn *redis.Client
+
+// BoltInit - Setup key bucket
+func BoltInit() {
+	Bolt.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("muh"))
+		return err
+	})
+}
+
+// BoltSet - Set key value in BoltDB
+func BoltSet(key, value string) {
+	Bolt.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("muh"))
+		err := b.Put([]byte(key), []byte(value))
+		return err
+	})
+}
+
+// BoltGet - Fetch key from BoltDB
+func BoltGet(key string) string {
+	var ret string
+	Bolt.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("muh"))
+		ret = string(b.Get([]byte(key)))
+		return nil
+	})
+	return ret
+}
+
+// BoltDel - Delete a key from BoltDB
+func BoltDel(key string) {
+	Bolt.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("muh"))
+		err := b.Delete([]byte(key))
+		return err
+	})
+}
 
 // RedisClient - Get new redis connection.
 func RedisClient() *redis.Client {

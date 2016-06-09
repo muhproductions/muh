@@ -16,7 +16,9 @@ package resources
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/muhproductions/muh/helper"
 	"github.com/muhproductions/muh/v1/models"
+	"strings"
 )
 
 // GistResource - Gists API Endpoint
@@ -29,6 +31,15 @@ func (g GistResource) Routes() {
 	g.Engine.GET("/gists/:uuid", g.Get)
 	g.Engine.POST("/gists/:uuid", g.CreateSnippets)
 	g.Engine.POST("/gists", g.CreateSnippets)
+
+	helper.Callbacks = append(helper.Callbacks, storeInBolt)
+}
+
+func storeInBolt(payload string) {
+	key := strings.Replace(payload, "shadow::", "", -1)
+	value := helper.RedisClient().Get(key).Val()
+	helper.BoltSet(key, value)
+	helper.RedisClient().Del(key)
 }
 
 // Get - gist by id

@@ -15,8 +15,12 @@
 package v1
 
 import (
+	"github.com/boltdb/bolt"
 	"github.com/gin-gonic/gin"
+	"github.com/muhproductions/muh/helper"
 	"github.com/muhproductions/muh/v1/resources"
+	"gopkg.in/redis.v3"
+	"os"
 )
 
 // Routes - Register all routes for API version 1
@@ -33,6 +37,30 @@ func Routes(api *gin.Engine) {
 		Engine: version,
 	}.Routes()
 
+	go EventHandler(helper.RedisClient())
+
+}
+
+// EventHandler will subscribe to keyspace notifications
+// and run callbacks.
+func EventHandler(r *redis.Client) {
+	db := "muh.db"
+	if os.Getenv("DB") != "" {
+		db = os.Getenv("DB")
+	}
+	b, err := bolt.Open(db, 0600, nil)
+	if err != nil {
+		panic(err)
+	}
+	helper.Bolt = b
+	helper.BoltInit()
+	pubsub, _ := r.Subscribe("__keyevent@0__:expired")
+	for {
+		msg, _ := pubsub.ReceiveMessage()
+		for _, callback := range helper.Callbacks {
+			callback(msg.Payload)
+		}
+	}
 }
 
 // Ping - a generic ping / pong route
