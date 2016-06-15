@@ -56,7 +56,11 @@ func (u UserResource) Authorize(c *gin.Context) {
 	if (c.PostForm("username") == "" && c.BindJSON(&login) == nil) || c.Bind(&login) == nil {
 		user := models.User{Username: login.Username}
 		if user.EqualsPassword(login.Password) {
-			c.AbortWithStatus(204)
+			c.JSON(200, gin.H{
+				"user": map[string]string{
+					"uuid": user.GetUUID(),
+				},
+			})
 			return
 		}
 		c.AbortWithStatus(403)

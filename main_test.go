@@ -214,7 +214,7 @@ func TestUserAuthorizeForm(t *testing.T) {
 			"password": "pass",
 		}).
 		Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
-			assert.Equal(t, 204, r.Code, "ResponseCode should be 204")
+			assert.Equal(t, 200, r.Code, "ResponseCode should be 200")
 		})
 }
 
@@ -244,6 +244,6 @@ func TestUserAuthorizeJSON(t *testing.T) {
 			"password": "pass",
 		}).
 		Run(GetEngine(), func(r gofight.HTTPResponse, rq gofight.HTTPRequest) {
-			assert.Equal(t, 204, r.Code, "ResponseCode should be 204")
+			assert.Equal(t, 200, r.Code, "ResponseCode should be 204")
 		})
 }
