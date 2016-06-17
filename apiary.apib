@@ -104,10 +104,15 @@ Creating gists, adding snippets and requesting gists.
         username=moo&
         password=pass
 
-+ Response 204 (application/json)
++ Response 200 (application/json)
     + Headers
         X-Ratelimit-Hits: Amount of requests until last reset
         X-Ratelimit-Bytes: Amount of traffic (upload/download) until last reset
+    + Body
+        { "user": { 
+                "uuid": <uuid>
+            }
+        }
     
 + Response 403 (application/json)
     + Headers
