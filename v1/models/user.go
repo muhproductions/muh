@@ -68,6 +68,26 @@ func (u *User) EqualsPassword(password string) bool {
 	return (err == nil)
 }
 
+// CreatedGists returns a list with gist id's
+func (u *User) CreatedGists() []string {
+	return helper.RedisClient().SMembers("users::" + u.GetUUID() + "::gists").Val()
+}
+
+// MarkGist marks a new gist
+func (u *User) MarkGist(UUID string) bool {
+	gist := Gist{UUID: UUID}
+	if gist.Exists() {
+		helper.RedisClient().SAdd("users::" + u.GetUUID() + "::marked_gists")
+		return true
+	}
+	return false
+}
+
+// MarkedGists returns a list of marked gists.
+func (u *User) MarkedGists() []string {
+	return helper.RedisClient().SMembers("users::" + u.GetUUID() + "::marked_gists").Val()
+}
+
 //SetPassword calculates a bcrypt hash and updates objects PasswordDigest.
 func (u *User) SetPassword(password string) {
 	v, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)

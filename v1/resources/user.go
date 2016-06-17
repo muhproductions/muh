@@ -84,6 +84,10 @@ func (u UserResource) Get(c *gin.Context) {
 			"uuid":     user.GetUUID(),
 			"username": user.GetUsername(),
 		},
+		"gists": map[string][]string{
+			"created": user.CreatedGists(),
+			"marked":  user.MarkedGists(),
+		},
 	})
 }
 
