@@ -21,6 +21,7 @@ import (
 	"github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 	"reflect"
+	"string"
 )
 
 // User model
@@ -68,9 +69,17 @@ func (u *User) EqualsPassword(password string) bool {
 	return (err == nil)
 }
 
+func fetchIdsByKey(key string) []string {
+	var ids []string
+	for _, v := range helper.RedisClient().Keys(key + "::*").Val() {
+		ids = append(ids, strings.Replace(v, key, "", -1))
+	}
+	return ids
+}
+
 // CreatedGists returns a list with gist id's
 func (u *User) CreatedGists() []string {
-	return helper.RedisClient().SMembers("users::" + u.GetUUID() + "::gists").Val()
+	return fetchIdsByKey("users::" + u.GetUUID() + "::gists")
 }
 
 // MarkGist marks a new gist
@@ -85,7 +94,7 @@ func (u *User) MarkGist(UUID string) bool {
 
 // MarkedGists returns a list of marked gists.
 func (u *User) MarkedGists() []string {
-	return helper.RedisClient().SMembers("users::" + u.GetUUID() + "::marked_gists").Val()
+	return fetchIdsByKey("users::" + u.GetUUID() + "::marked_gists")
 }
 
 //SetPassword calculates a bcrypt hash and updates objects PasswordDigest.

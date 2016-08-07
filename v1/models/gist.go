@@ -78,7 +78,7 @@ func getSnippet(r *redis.Pipeline, key string, value *redis.StringCmd) snippet {
 func (g *Gist) initSnippet(r *redis.Pipeline, snippet snippet, userid string) {
 	r.SAdd("gists::"+g.UUID, snippet.UUID)
 	if userid != "" {
-		r.SAdd("users::"+userid+"::gists", g.UUID)
+		r.Set("users::"+userid+"::gists::"+g.UUID, "", 0)
 	}
 }
 
